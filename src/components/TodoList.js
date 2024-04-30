@@ -106,7 +106,7 @@ const TodoList = () => {
     // Firestore 에서 해당 id를 가진 할 일을 삭제합니다.
     const todoDoc = doc(todoCollection, id);
     deleteDoc(todoDoc);
-    
+
     // 해당 id를 가진 할 일을 제외한 나머지 목록을 새로운 상태로 저장합니다.
     // setTodos(todos.filter((todo) => todo.id !== id));
     setTodos(
@@ -116,11 +116,22 @@ const TodoList = () => {
     );
   };
 
-  const deleteAll = () => {
-    console.log("Before deleteAll:", todos); // 삭제 전 상태 출력
-    setTodos([]); // 모든 할 일 목록을 빈 배열로 설정하여 삭제
-    console.log("After deleteAll:", todos); // 삭제 후 상태 출력 (업데이트 후 상태 확인)
-  };
+const deleteAll = async () => {
+  try {
+    // Firestore에서 모든 할 일 문서를 가져옵니다.
+    const querySnapshot = await getDocs(todoCollection);
+
+    // 모든 할 일 문서를 개별적으로 삭제합니다.
+    querySnapshot.forEach((doc) => {
+      deleteDoc(doc.ref);
+    });
+
+    // 모든 할 일이 삭제된 후에 할 일 목록을 빈 배열로 설정합니다.
+    setTodos([]);
+  } catch (error) {
+    console.error("Error deleting documents: ", error);
+  }
+};
   
 
   // 컴포넌트를 렌더링합니다.
