@@ -8,14 +8,15 @@ import React from "react";
 import styles from "@/styles/TodoList.module.css";
 
 // TodoItem 컴포넌트를 정의합니다.
-const TodoItem = ({ todo, onToggle, onDelete }) => {
+const TodoItem = ({ todo, onToggle, onDelete, createdAt }) => {
   // 각 할 일 항목을 렌더링합니다.
   return (
     <li className={styles.todoItem}>
       {/* 체크박스를 렌더링하고, 체크박스의 상태를 할 일의 완료 상태와 동기화합니다.
           체크박스의 상태가 변경되면 onToggle 함수를 호출하여 완료 상태를 업데이트합니다. */}
-      <input type="checkbox" checked={todo.completed} onChange={onToggle} />
-
+      <input type="checkbox" checked={todo.completed} onChange={onToggle}  className={styles.checkbox} />
+     
+      <span className={styles.createdAt}>{createdAt.toLocaleString()}</span> {/* 등록된 날짜 표시 */}
       {/* 할 일의 텍스트를 렌더링하고, 완료 상태에 따라 텍스트에 취소선을 적용합니다. */}
       <span
         className={styles.todoText}
@@ -23,7 +24,7 @@ const TodoItem = ({ todo, onToggle, onDelete }) => {
       >
         {todo.text}
       </span>
-
+      <span className={styles.category}>{todo.category}</span> {/* 카테고리 표시 */}
       {/* 삭제 버튼을 렌더링하고, 클릭 시 onDelete 함수를 호출하여 해당 할 일을 삭제합니다. */}
       <button className={styles.delButton} onClick={onDelete}>Delete</button>
     </li>

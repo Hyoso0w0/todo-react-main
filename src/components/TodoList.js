@@ -21,6 +21,7 @@ import {
   deleteDoc,
   orderBy,
   where,
+  Timestamp,
 } from "firebase/firestore";
 
 //DB의 todos 컬렉션 참조를 만듭니다. 컬렉션 사용시 잘못된 컬렉션 이름 사용을 방지합니다.
@@ -31,50 +32,51 @@ const TodoList = () => {
   // 상태를 관리하는 useState 훅을 사용하여 할 일 목록과 입력값을 초기화합니다.
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
+  const [sortByTime, setSortByTime] = useState(false);
+  const [category, setCategory] = useState("all");
 
   useEffect(()=> {
     getTodos();
-  }, []);
+  }, [sortByTime, category]);
 
-  const getTodos =async() => {
-    //Firestore 쿼리를 만듭니다.
-    const q =query(todoCollection);
-    // const q = query(collection(db, "todos"), where("user", "==", user.uid));
-    // const q = query(todoCollection, orderBy("datetime", "
-
-    // Firestore 에서 할 일 목록을 조회합니다.
+  const getTodos = async () => {
+    
+    let q;
+    if (sortByTime) {
+      q = query(todoCollection, orderBy("createdAt", "desc"));
+    } else {
+      q = query(todoCollection, orderBy("createdAt", "asc"));
+    }
+    if (category !== "all") {
+      q = query(q, where("category", "==", category));
+    }
+    // Firestore에서 할 일 목록을 조회합니다.
     const results = await getDocs(q);
-    const newTodos= [];
+    const newTodos = [];
     // 가져온 할 일 목록을 newTodos 배열에 담습니다.
-    results.docs.forEach((doc)=> {
-      // console.log(doc.data());
-      // id 값을 Firestore 에 저장한 값으로 지정하고, 나머지 데이터를 newTodos 배열에 담습니다.
-    newTodos.push({id: doc.id, ...doc.data()});
+    results.docs.forEach((doc) => {
+      newTodos.push({ id: doc.id, ...doc.data() });
     });
     setTodos(newTodos);
   };
 
-  // addTodo 함수는 입력값을 이용하여 새로운 할 일을 목록에 추가하는 함수입니다.
   const addTodo = async () => {
     // 입력값이 비어있는 경우 함수를 종료합니다.
     if (input.trim() === "") return;
-    // 기존 할 일 목록에 새로운 할 일을 추가하고, 입력값을 초기화합니다.
-    // {
-    //   id: 할일의 고유 id,
-    //   text: 할일의 내용,
-    //   completed: 완료 여부,
-    // }
-    // ...todos => {id: 1, text: "할일1", completed: false}, {id: 2, text: "할일2", completed: false}}, ..
-   
-    // Firestore 에 추가한 할 일을 저장합니다.
+    
+    // Firestore에 현재 시간과 함께 할 일을 추가합니다.
+    const currentTime = new Date();
     const docRef = await addDoc(todoCollection, {
       text: input,
       completed: false,
+      createdAt: currentTime, // 등록된 시간을 함께 저장합니다.
+      category: category,
     });
-    //id값을 Firestore에 저장한 값으로 지정합니다.
-
-    setTodos([...todos, { id: docRef.id, text: input, completed: false }]);
+  
+    // 추가한 할 일을 화면에 표시하기 위해 상태를 업데이트합니다.
+    setTodos([...todos, { id: docRef.id, text: input, completed: false, createdAt: currentTime, category: category}]);
     setInput("");
+
   };
 
 
@@ -102,18 +104,17 @@ const TodoList = () => {
 
  
   // deleteTodo 함수는 할 일을 목록에서 삭제하는 함수입니다.
-  const deleteTodo = (id) => {
+  const deleteTodo = async (id) => {
     // Firestore 에서 해당 id를 가진 할 일을 삭제합니다.
     const todoDoc = doc(todoCollection, id);
-    deleteDoc(todoDoc);
+    await deleteDoc(todoDoc);
+    setTodos(todos.filter((todo) => todo.id !== id));
+
 
     // 해당 id를 가진 할 일을 제외한 나머지 목록을 새로운 상태로 저장합니다.
     // setTodos(todos.filter((todo) => todo.id !== id));
-    setTodos(
-      todos.filter((todo) => {
-        return todo.id !== id;
-      })
-    );
+   
+
   };
 
 const deleteAll = async () => {
@@ -153,7 +154,16 @@ const deleteAll = async () => {
       <button className={styles.addButton} onClick={deleteAll}>
   Delete all
 </button>
-
+<button className={styles.addButton} onClick={() => setSortByTime(!sortByTime)}>
+        {sortByTime ? "Sort by Creation Time (오름차순)" : "Sort by Creation Time (내림차순)"}
+      </button>
+      <select value={category} onChange={(e) => setCategory(e.target.value)}>
+        <option value="all">All</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="shopping">Shopping</option>
+        {/* Add more categories here if needed */}
+      </select>
       {/* 할 일 목록을 렌더링합니다. */}
       <ul>
         {todos.map((todo) => (
@@ -162,8 +172,11 @@ const deleteAll = async () => {
             todo={todo}
             onToggle={() => toggleTodo(todo.id)}
             onDelete={() => deleteTodo(todo.id)}
+            createdAt={todo.createdAt instanceof Timestamp ? todo.createdAt.toDate() : todo.createdAt}
           />
+          
         ))}
+        
       </ul>
     </div>
   );
