@@ -35,9 +35,6 @@ const TodoList = () => {
   // 상태를 관리하는 useState 훅을 사용하여 할 일 목록과 입력값을 초기화합니다.
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
-  const [sortByTime, setSortByTime] = useState(false);
-  const [category, setCategory] = useState("all");
-  
   const router = useRouter();
   const { data } = useSession({
     required: true,
@@ -45,20 +42,24 @@ const TodoList = () => {
       router.replace("/login");
     },
   });
+  const [sortByTime, setSortByTime] = useState(false);
+  const [category, setCategory] = useState("all");
+  
+ 
 
 
   useEffect(()=> {
     console.log("data", data);
     getTodos();
-  }, [sortByTime, category, data]);
+  }, [data, sortByTime, category]);
 
   const getTodos = async () => {
     // 로그인 정보를 확인하고 사용자 이름이 없으면 함수를 종료합니다.
-    if (!data?.user?.name) {
+    if (!data?.user?.name) 
         // 여기에 로그인 정보를 확인하는 코드를 추가하세요.
         // 예를 들어, 로그인 여부를 확인하는 함수를 호출하거나, 사용자 정보를 가져오는 비동기 작업을 수행할 수 있습니다.
         return;
-    }
+    
 
     // 사용자 이름에 따라서 쿼리를 설정합니다.
     let q;
