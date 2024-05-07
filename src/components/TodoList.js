@@ -6,6 +6,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+
 import TodoItem from "@/components/TodoItem";
 import styles from "@/styles/TodoList.module.css"; //input안에 텍스트 쓸 수 있음
 
@@ -34,31 +37,57 @@ const TodoList = () => {
   const [input, setInput] = useState("");
   const [sortByTime, setSortByTime] = useState(false);
   const [category, setCategory] = useState("all");
+  
+  const router = useRouter();
+  const { data } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.replace("/login");
+    },
+  });
+
 
   useEffect(()=> {
+    console.log("data", data);
     getTodos();
-  }, [sortByTime, category]);
+  }, [sortByTime, category, data]);
 
   const getTodos = async () => {
-    
+    // 로그인 정보를 확인하고 사용자 이름이 없으면 함수를 종료합니다.
+    if (!data?.user?.name) {
+        // 여기에 로그인 정보를 확인하는 코드를 추가하세요.
+        // 예를 들어, 로그인 여부를 확인하는 함수를 호출하거나, 사용자 정보를 가져오는 비동기 작업을 수행할 수 있습니다.
+        return;
+    }
+
+    // 사용자 이름에 따라서 쿼리를 설정합니다.
     let q;
     if (sortByTime) {
       q = query(todoCollection, orderBy("createdAt", "desc"));
     } else {
       q = query(todoCollection, orderBy("createdAt", "asc"));
     }
+
+    // 카테고리 옵션에 따라서 쿼리를 추가합니다.
     if (category !== "all") {
       q = query(q, where("category", "==", category));
     }
+
+    // 사용자 이름에 따라서 쿼리를 추가합니다.
+    q = query(q, where("userName", "==", data?.user?.name));
+
     // Firestore에서 할 일 목록을 조회합니다.
     const results = await getDocs(q);
+
     const newTodos = [];
     // 가져온 할 일 목록을 newTodos 배열에 담습니다.
     results.docs.forEach((doc) => {
       newTodos.push({ id: doc.id, ...doc.data() });
     });
+
+    // setTodos 함수를 사용하여 할 일 목록을 업데이트합니다.
     setTodos(newTodos);
-  };
+};
 
   const addTodo = async () => {
     // 입력값이 비어있는 경우 함수를 종료합니다.
@@ -67,6 +96,7 @@ const TodoList = () => {
     // Firestore에 현재 시간과 함께 할 일을 추가합니다.
     const currentTime = new Date();
     const docRef = await addDoc(todoCollection, {
+      userName: data?.user?.name,
       text: input,
       completed: false,
       createdAt: currentTime, // 등록된 시간을 함께 저장합니다.
@@ -138,7 +168,7 @@ const deleteAll = async () => {
   // 컴포넌트를 렌더링합니다.
   return (
     <div className={styles.container}>
-      <h1>Todo List</h1>
+      <h1> {data?.user?.name}'s Todo List</h1>
       {/* 할 일을 입력받는 텍스트 필드입니다. */}
       <input
         type="text"
@@ -165,6 +195,7 @@ const deleteAll = async () => {
         {/* Add more categories here if needed */}
       </select>
       {/* 할 일 목록을 렌더링합니다. */}
+     
       <ul>
         {todos.map((todo) => (
           <TodoItem
